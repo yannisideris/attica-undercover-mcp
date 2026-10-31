@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: attica-undercover-mcp
+    runtime: node
+    plan: free
+    buildCommand: npm install --omit=dev
+    startCommand: npm start
