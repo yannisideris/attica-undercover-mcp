@@ -235,58 +235,6 @@ export function validateInitialStateV13(state) {
     : null;
 }
 
-// ---------------------------------------------------------------- map seeding
-// After GPT saves its SITE MAP, the server picks random numbered spaces for one
-// danger, one opportunity and one misleading element, plus a free NPC start, so
-// not everything interesting sits where the lead is. Only the kind and the place
-// are drawn; GPT invents what fits the mission and the space.
-// Seeded from run_id: a rebuilt state after a server restart gets the same draw.
-const SEED_KINDS = ["DANGER", "OPPORTUNITY", "MISLEADING ELEMENT"];
-
-function seededRng(runId) {
-  let h = 2166136261;
-  for (const ch of String(runId)) h = Math.imul(h ^ ch.charCodeAt(0), 16777619) >>> 0;
-  return () => {
-    h ^= h << 13; h >>>= 0; h ^= h >>> 17; h ^= h << 5; h >>>= 0;
-    return h / 4294967296;
-  };
-}
-
-function parseMapSpaces(state) {
-  const s = String(state);
-  const start = s.search(/site\s*map|layout/i);
-  if (start < 0) return [];
-  const rest = s.slice(start);
-  const endRel = rest.slice(8).search(/\n\s*(key\s*npcs?|npcs?|timeline|clues|routines)\b/i);
-  const section = endRel < 0 ? rest : rest.slice(0, endRel + 8);
-  const spaces = [];
-  for (const m of section.matchAll(/(?:^|\n)\s*(\d{1,2})[.)]\s+([^:\n]{2,80})/g)) {
-    let name = m[2].trim().replace(/\s+/g, " ");
-    if (name.length > 50) name = name.slice(0, 50).replace(/\s+\S*$/, "") + "…";
-    spaces.push({ n: m[1], name });
-  }
-  return spaces;
-}
-
-export function seedMapDetailsV13(runId, state) {
-  const spaces = parseMapSpaces(state);
-  if (spaces.length < 4) return null;
-  const rnd = seededRng(runId);
-  const pool = spaces.slice();
-  const takeSpace = () => pool.splice(Math.floor(rnd() * pool.length), 1)[0];
-  const lines = [];
-  for (const kind of SEED_KINDS) {
-    const sp = takeSpace();
-    lines.push(`- ${kind} in space ${sp.n} (${sp.name}).`);
-  }
-  const npcSpace = takeSpace();
-  lines.push(`- NPC PLACEMENT: one key NPC whose position the dossier does not fix usually starts in space ${npcSpace.n} (${npcSpace.name}); ignore this if every key NPC's position is fixed.`);
-  return [
-    "SERVER-SEEDED DETAILS (part of the sealed state; decide what each one is so it fits this mission and its space; where the space already holds something of that kind, deepen it instead of adding another; never a route to the objective and never a change to fixed dossier facts)",
-    ...lines
-  ].join("\n");
-}
-
 // ---------------------------------------------------------------- public API
 export function buildStartTextV13(runId) {
   if (!runId) throw new Error("runId is required");
