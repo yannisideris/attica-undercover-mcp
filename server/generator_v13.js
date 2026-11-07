@@ -116,7 +116,7 @@ const LINES_OF_WORK = [
 ];
 
 function buildCastingSeeds() {
-  const genders = shuffle(["woman", "man", pickOne(["woman", "man"])]);
+  const genders = ["man", "woman", "man"];
   const homes = shuffle(HOME_GROUNDS).slice(0, 3);
   const work = shuffle(LINES_OF_WORK).slice(0, 3);
   const lines = ["CASTING SEEDS (loose starting points for the three characters; keep gender and order)"];
