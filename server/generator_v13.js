@@ -201,6 +201,34 @@ function buildD20Stream(count = 40) {
   ].join("\r\n");
 }
 
+// The state payload is checked server-side (see validateInitialStateV13), so the
+// one-time concretization cannot silently collapse into a placeholder line.
+const STATE_TEMPLATE_V13 = [
+  "NEXT: before the first scene, write the hidden mission-start state and save it with initialize_mission_state. Use these headed sections; a few lines each is enough for a simple job, more for a layered site:",
+  "SITE MAP: numbered spaces with exits/connections, barriers, who is usually there, what is seen or heard, ordinary contents — or, for open ground, named places and routes with travel times. Give every stair, door and opening a distinct name and keep using it.",
+  "KEY NPCS: the two to four who matter — name, position, want, fear, what they know, what they hide.",
+  "TIMELINE: two to four off-screen beats with a time or trigger.",
+  "CLUES: two or three true things the player can find, and where.",
+  "Then open the first scene."
+].join("\r\n");
+
+const REQUIRED_SECTIONS = [
+  ["SITE MAP", /\b(site\s*map|map|layout)\b/i],
+  ["KEY NPCS", /\bnpcs?\b/i],
+  ["TIMELINE", /\b(timeline|off-?screen)\b/i]
+];
+
+export function validateInitialStateV13(state) {
+  const s = String(state || "");
+  const missing = REQUIRED_SECTIONS.filter(([, re]) => !re.test(s)).map(([name]) => name);
+  const problems = [];
+  if (s.trim().length < 400) problems.push("it is too short to be a real concretization (under 400 characters)");
+  if (missing.length) problems.push("it lacks the section(s): " + missing.join(", "));
+  return problems.length
+    ? "Not saved: " + problems.join("; ") + ". Write the one-time concretization from the dossier with the headed sections SITE MAP, KEY NPCS, TIMELINE and CLUES (proportionate to the mission), then call initialize_mission_state again before the first scene."
+    : null;
+}
+
 // ---------------------------------------------------------------- public API
 export function buildStartTextV13(runId) {
   if (!runId) throw new Error("runId is required");
@@ -247,7 +275,7 @@ export function openDossierV13(dossierKey, missionNumber) {
     "",
     buildD20Stream(),
     "",
-    "Next: create the hidden mission-start state and save it with initialize_mission_state, then open the first scene."
+    STATE_TEMPLATE_V13
   ].join("\r\n");
 }
 

@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { buildStartTextV13, openDossierV13, V13_VERSION } from "./generator_v13.js";
+import { buildStartTextV13, openDossierV13, validateInitialStateV13, V13_VERSION } from "./generator_v13.js";
 import { initializeMissionState, readMissionState, recordMissionEvent } from "./state-store.js";
 
 function hiddenStateText(run) {
@@ -68,7 +68,7 @@ export function createAtticaServerV13() {
     {
       title: "Initialize hidden mission state",
       description:
-        "Use exactly once, after open_mission_dossier and before narrating the first mission scene. Save the AI GM's one-time mission-start concretization: site map, NPC private layers, off-screen timeline, clues, routines, clocks and other prepared facts. The stored initialization is immutable; if it already exists, it is not replaced.",
+        "Use exactly once, after open_mission_dossier and before narrating the first mission scene. Save the AI GM's one-time mission-start concretization with headed sections SITE MAP, KEY NPCS, TIMELINE and CLUES (proportionate to the mission). A placeholder or a state missing these sections is rejected. The stored initialization is immutable; if it already exists, it is not replaced.",
       inputSchema: {
         run_id: z.string().uuid().describe("The SERVER STATE HANDLE run_id from the sealed prompt."),
         mission_number: z.number().int().min(1).max(3).describe("The final selected mission number, 1-3."),
@@ -78,6 +78,8 @@ export function createAtticaServerV13() {
       annotations: { readOnlyHint: false, openWorldHint: false, destructiveHint: false }
     },
     async ({ run_id, mission_number, mission_title, state }) => {
+      const problem = validateInitialStateV13(state);
+      if (problem) return text(problem, true);
       const r = initializeMissionState({ runId: run_id, missionNumber: mission_number, missionTitle: mission_title, initialState: state });
       return r.status === "already_initialized"
         ? text("Hidden mission state already exists and remains sealed; no overwrite was performed. Continue using the existing state.")
