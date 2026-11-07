@@ -280,9 +280,9 @@ export function seedMapDetailsV13(runId, state) {
     lines.push(`- ${kind} in space ${sp.n} (${sp.name}).`);
   }
   const npcSpace = takeSpace();
-  lines.push(`- NPC PLACEMENT: one key NPC whose position the dossier does not fix usually starts in space ${npcSpace.n} (${npcSpace.name}).`);
+  lines.push(`- NPC PLACEMENT: one key NPC whose position the dossier does not fix usually starts in space ${npcSpace.n} (${npcSpace.name}); ignore this if every key NPC's position is fixed.`);
   return [
-    "SERVER-SEEDED DETAILS (part of the sealed state; decide what each one is so it fits this mission and its space, never a route to the objective and never a change to fixed dossier facts)",
+    "SERVER-SEEDED DETAILS (part of the sealed state; decide what each one is so it fits this mission and its space; where the space already holds something of that kind, deepen it instead of adding another; never a route to the objective and never a change to fixed dossier facts)",
     ...lines
   ].join("\n");
 }
