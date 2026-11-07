@@ -5,6 +5,7 @@ import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/
 import { z } from "zod";
 import { buildSealedText } from "./generator.js";
 import { initializeMissionState, readMissionState, recordMissionEvent } from "./state-store.js";
+import { createAtticaServerV13 } from "./server_v13.js";
 
 function hiddenStateText(run) {
   const lines = [
@@ -151,6 +152,8 @@ function createAtticaServer() {
 
 const port = Number(process.env.PORT ?? 8787);
 const MCP_PATH = "/mcp";
+// v13 profile is served side by side for A/B play; /mcp stays v12.2.
+const MCP_PATHS = { "/mcp": createAtticaServer, "/mcp-v13": createAtticaServerV13 };
 
 const httpServer = createServer(async (req, res) => {
   if (!req.url) {
@@ -160,7 +163,7 @@ const httpServer = createServer(async (req, res) => {
 
   const url = new URL(req.url, `http://${req.headers.host ?? "localhost"}`);
 
-  if (req.method === "OPTIONS" && url.pathname === MCP_PATH) {
+  if (req.method === "OPTIONS" && MCP_PATHS[url.pathname]) {
     res.writeHead(204, {
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Methods": "POST, GET, DELETE, OPTIONS",
@@ -172,16 +175,16 @@ const httpServer = createServer(async (req, res) => {
   }
 
   if (req.method === "GET" && url.pathname === "/") {
-    res.writeHead(200, { "content-type": "text/plain; charset=utf-8" }).end("Attica Undercover MCP server v12.2.0");
+    res.writeHead(200, { "content-type": "text/plain; charset=utf-8" }).end("Attica Undercover MCP server v12.2.0 (/mcp) + v13.0.0 (/mcp-v13)");
     return;
   }
 
   const methods = new Set(["POST", "GET", "DELETE"]);
-  if (url.pathname === MCP_PATH && req.method && methods.has(req.method)) {
+  if (MCP_PATHS[url.pathname] && req.method && methods.has(req.method)) {
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Access-Control-Expose-Headers", "Mcp-Session-Id");
 
-    const server = createAtticaServer();
+    const server = MCP_PATHS[url.pathname]();
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: undefined,
       enableJsonResponse: true
