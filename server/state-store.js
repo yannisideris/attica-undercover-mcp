@@ -81,6 +81,12 @@ export function recordMissionEvent({ runId, event }) {
   return { status: "recorded", entry, run };
 }
 
+export function listRuns(limit = 10) {
+  const runs = Object.values(loadDb().runs);
+  runs.sort((a, b) => String(b.initializedAt || b.createdAt).localeCompare(String(a.initializedAt || a.createdAt)));
+  return runs.slice(0, limit);
+}
+
 export function stateFilePath() {
   return stateFile;
 }

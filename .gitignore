@@ -4,3 +4,5 @@ runtime/
 .DS_Store
 Thumbs.db
 *.tmp
+.admin-token
+state-review/

@@ -1,10 +1,10 @@
 import { createServer } from "node:http";
-import { randomUUID } from "node:crypto";
+import { randomUUID, createHash, timingSafeEqual } from "node:crypto";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { z } from "zod";
 import { buildSealedText } from "./generator.js";
-import { initializeMissionState, readMissionState, recordMissionEvent } from "./state-store.js";
+import { initializeMissionState, readMissionState, recordMissionEvent, listRuns } from "./state-store.js";
 import { createAtticaServerV13 } from "./server_v13.js";
 
 function hiddenStateText(run) {
@@ -150,6 +150,8 @@ function createAtticaServer() {
   return server;
 }
 
+const ADMIN_TOKEN_SHA256 = "14489a3e2bb9ee6fcbdaaf3b317d361ea7eba8ed2227b5b2607918c20e7e4837";
+
 const port = Number(process.env.PORT ?? 8787);
 const MCP_PATH = "/mcp";
 // v13 profile is served side by side for A/B play; /mcp stays v12.2.
@@ -176,6 +178,20 @@ const httpServer = createServer(async (req, res) => {
 
   if (req.method === "GET" && url.pathname === "/") {
     res.writeHead(200, { "content-type": "text/plain; charset=utf-8" }).end("Attica Undercover MCP server v12.2.0 (/mcp) + v13.0.0 (/mcp-v13)");
+    return;
+  }
+
+    // Read-only playtest viewer for hidden states. Only the SHA-256 of the token
+  // lives in the repo; the token itself stays in the local, git-ignored .admin-token.
+  if (req.method === "GET" && url.pathname === "/admin/runs") {
+    const given = createHash("sha256").update(String(req.headers["x-admin-token"] || "")).digest();
+    const expected = Buffer.from(ADMIN_TOKEN_SHA256, "hex");
+    if (!timingSafeEqual(given, expected)) {
+      res.writeHead(404).end("Not Found");
+      return;
+    }
+    const limit = Math.min(50, Math.max(1, Number(url.searchParams.get("limit")) || 10));
+    res.writeHead(200, { "content-type": "application/json; charset=utf-8" }).end(JSON.stringify(listRuns(limit), null, 2));
     return;
   }
 
