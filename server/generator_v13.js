@@ -68,7 +68,7 @@ function coreRulesV13() {
     t,
     "do not split one action into a chain of near-identical checks.",
     "do not split one action into a chain of near-identical checks.\r\n" +
-      "- Stealth and infiltration follow the same rule: one successful roll carries the declared approach through the same zone until something materially changes — a new zone, a new observer, noise, or a timeline beat that brings someone close. Waiting, watching or listening from cover already won needs no roll; time simply passes and the world moves. Knowing where guards and patrols are is a reason to make them matter when they arrive, not a reason to roll for every step."
+      "- This holds for stealth too: one roll carries an approach until something changes, and watching from cover needs no roll."
   );
   return t;
 }
