@@ -236,41 +236,12 @@ export function validateInitialStateV13(state) {
 }
 
 // ---------------------------------------------------------------- map seeding
-// After GPT saves its SITE MAP, the server scatters a few generic details over
-// random numbered spaces, so not everything interesting sits where the lead is.
+// After GPT saves its SITE MAP, the server picks random numbered spaces for one
+// danger, one opportunity and one misleading element, plus a free NPC start, so
+// not everything interesting sits where the lead is. Only the kind and the place
+// are drawn; GPT invents what fits the mission and the space.
 // Seeded from run_id: a rebuilt state after a server restart gets the same draw.
-const SEED_POOLS = {
-  "PRESSURE": [
-    "a dog that reacts to strangers",
-    "a nosy neighbour, worker or regular who asks who you are",
-    "a motion light, buzzer or sensor that is louder than expected",
-    "a creaking floor, gravel patch or metal surface that carries sound",
-    "someone who might recognise the player character from somewhere",
-    "a phone or alarm likely to go off at a bad moment",
-    "a camera, real or dummy, that is not obvious at first",
-    "a person resting or hiding here who should not be",
-    "a door expected to be open that is stuck or locked",
-    "a broken step, spill or unstable surface"
-  ],
-  "OPPORTUNITY": [
-    "an unattended jacket, bag or phone",
-    "a spare key, code note or badge left carelessly",
-    "a delivery, cleaning or maintenance routine that offers a cover story",
-    "a window, hatch or vent that is not properly secured",
-    "a bystander with a grudge who might help for their own reasons",
-    "a vantage point overlooking a neighbouring space",
-    "an ordinary object that can be improvised into a tool",
-    "steady noise (TV, machinery, music) that masks sound"
-  ],
-  "RED HERRING": [
-    "a locked box, drawer or room holding something private but irrelevant",
-    "a quarrel or secret between bystanders unrelated to the mission",
-    "suspicious-looking items with an innocent explanation",
-    "a note, number or name that seems important but is not",
-    "someone acting nervously for an unrelated reason",
-    "traces of an older, unrelated scheme"
-  ]
-};
+const SEED_KINDS = ["DANGER", "OPPORTUNITY", "MISLEADING ELEMENT"];
 
 function seededRng(runId) {
   let h = 2166136261;
@@ -304,14 +275,14 @@ export function seedMapDetailsV13(runId, state) {
   const pool = spaces.slice();
   const takeSpace = () => pool.splice(Math.floor(rnd() * pool.length), 1)[0];
   const lines = [];
-  for (const [kind, items] of Object.entries(SEED_POOLS)) {
+  for (const kind of SEED_KINDS) {
     const sp = takeSpace();
-    lines.push(`- ${kind} in space ${sp.n} (${sp.name}): ${items[Math.floor(rnd() * items.length)]}.`);
+    lines.push(`- ${kind} in space ${sp.n} (${sp.name}).`);
   }
   const npcSpace = takeSpace();
   lines.push(`- NPC PLACEMENT: one key NPC whose position the dossier does not fix usually starts in space ${npcSpace.n} (${npcSpace.name}).`);
   return [
-    "SERVER-SEEDED DETAILS (part of the sealed state; make each concrete and plausible for its space, never a route to the objective and never a change to fixed dossier facts)",
+    "SERVER-SEEDED DETAILS (part of the sealed state; decide what each one is so it fits this mission and its space, never a route to the objective and never a change to fixed dossier facts)",
     ...lines
   ].join("\n");
 }
