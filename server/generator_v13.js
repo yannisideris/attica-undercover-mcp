@@ -235,6 +235,87 @@ export function validateInitialStateV13(state) {
     : null;
 }
 
+// ---------------------------------------------------------------- map seeding
+// After GPT saves its SITE MAP, the server scatters a few generic details over
+// random numbered spaces, so not everything interesting sits where the lead is.
+// Seeded from run_id: a rebuilt state after a server restart gets the same draw.
+const SEED_POOLS = {
+  "PRESSURE": [
+    "a dog that reacts to strangers",
+    "a nosy neighbour, worker or regular who asks who you are",
+    "a motion light, buzzer or sensor that is louder than expected",
+    "a creaking floor, gravel patch or metal surface that carries sound",
+    "someone who might recognise the player character from somewhere",
+    "a phone or alarm likely to go off at a bad moment",
+    "a camera, real or dummy, that is not obvious at first",
+    "a person resting or hiding here who should not be",
+    "a door expected to be open that is stuck or locked",
+    "a broken step, spill or unstable surface"
+  ],
+  "OPPORTUNITY": [
+    "an unattended jacket, bag or phone",
+    "a spare key, code note or badge left carelessly",
+    "a delivery, cleaning or maintenance routine that offers a cover story",
+    "a window, hatch or vent that is not properly secured",
+    "a bystander with a grudge who might help for their own reasons",
+    "a vantage point overlooking a neighbouring space",
+    "an ordinary object that can be improvised into a tool",
+    "steady noise (TV, machinery, music) that masks sound"
+  ],
+  "RED HERRING": [
+    "a locked box, drawer or room holding something private but irrelevant",
+    "a quarrel or secret between bystanders unrelated to the mission",
+    "suspicious-looking items with an innocent explanation",
+    "a note, number or name that seems important but is not",
+    "someone acting nervously for an unrelated reason",
+    "traces of an older, unrelated scheme"
+  ]
+};
+
+function seededRng(runId) {
+  let h = 2166136261;
+  for (const ch of String(runId)) h = Math.imul(h ^ ch.charCodeAt(0), 16777619) >>> 0;
+  return () => {
+    h ^= h << 13; h >>>= 0; h ^= h >>> 17; h ^= h << 5; h >>>= 0;
+    return h / 4294967296;
+  };
+}
+
+function parseMapSpaces(state) {
+  const s = String(state);
+  const start = s.search(/site\s*map|layout/i);
+  if (start < 0) return [];
+  const rest = s.slice(start);
+  const endRel = rest.slice(8).search(/\n\s*(key\s*npcs?|npcs?|timeline|clues|routines)\b/i);
+  const section = endRel < 0 ? rest : rest.slice(0, endRel + 8);
+  const spaces = [];
+  for (const m of section.matchAll(/(?:^|\n)\s*(\d{1,2})[.)]\s+([^:\n]{2,80})/g)) {
+    let name = m[2].trim().replace(/\s+/g, " ");
+    if (name.length > 50) name = name.slice(0, 50).replace(/\s+\S*$/, "") + "…";
+    spaces.push({ n: m[1], name });
+  }
+  return spaces;
+}
+
+export function seedMapDetailsV13(runId, state) {
+  const spaces = parseMapSpaces(state);
+  if (spaces.length < 4) return null;
+  const rnd = seededRng(runId);
+  const pool = spaces.slice();
+  const takeSpace = () => pool.splice(Math.floor(rnd() * pool.length), 1)[0];
+  const lines = [];
+  for (const [kind, items] of Object.entries(SEED_POOLS)) {
+    const sp = takeSpace();
+    lines.push(`- ${kind} in space ${sp.n} (${sp.name}): ${items[Math.floor(rnd() * items.length)]}.`);
+  }
+  const npcSpace = takeSpace();
+  lines.push(`- NPC PLACEMENT: one key NPC whose position the dossier does not fix usually starts in space ${npcSpace.n} (${npcSpace.name}).`);
+  return [
+    "SERVER-SEEDED DETAILS (part of the sealed state; make each concrete and plausible for its space, never a route to the objective and never a change to fixed dossier facts)",
+    ...lines
+  ].join("\n");
+}
+
 // ---------------------------------------------------------------- public API
 export function buildStartTextV13(runId) {
   if (!runId) throw new Error("runId is required");

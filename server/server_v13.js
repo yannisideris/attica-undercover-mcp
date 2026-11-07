@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { buildStartTextV13, openDossierV13, validateInitialStateV13, V13_VERSION } from "./generator_v13.js";
+import { buildStartTextV13, openDossierV13, validateInitialStateV13, seedMapDetailsV13, V13_VERSION } from "./generator_v13.js";
 import { initializeMissionState, readMissionState, recordMissionEvent } from "./state-store.js";
 
 function hiddenStateText(run) {
@@ -80,10 +80,16 @@ export function createAtticaServerV13() {
     async ({ run_id, mission_number, mission_title, state }) => {
       const problem = validateInitialStateV13(state);
       if (problem) return text(problem, true);
-      const r = initializeMissionState({ runId: run_id, missionNumber: mission_number, missionTitle: mission_title, initialState: state });
-      return r.status === "already_initialized"
-        ? text("Hidden mission state already exists and remains sealed; no overwrite was performed. Continue using the existing state.")
-        : text("Hidden mission state initialized and sealed server-side. Do not expose it; continue directly with the first mission scene.");
+      const seeds = seedMapDetailsV13(run_id, state);
+      const sealed = seeds ? state.trimEnd() + "\n\n" + seeds : state;
+      const r = initializeMissionState({ runId: run_id, missionNumber: mission_number, missionTitle: mission_title, initialState: sealed });
+      if (r.status === "already_initialized") {
+        return text("Hidden mission state already exists and remains sealed; no overwrite was performed. Continue using the existing state.");
+      }
+      return text(
+        "Hidden mission state initialized and sealed server-side. Do not expose it." +
+          (seeds ? "\n\n" + seeds + "\n\nThese are now part of the hidden state. Continue directly with the first mission scene." : " Continue directly with the first mission scene.")
+      );
     }
   );
 
