@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const stateFile = process.env.ATTICA_STATE_FILE || join(__dirname, "..", "runtime", "attica-hidden-state.json");
-const MAX_RUNS = 50;
+const MAX_RUNS = 1000;
 
 function emptyDb() {
   return { version: 1, runs: {} };
