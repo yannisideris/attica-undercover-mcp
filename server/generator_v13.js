@@ -64,6 +64,12 @@ function coreRulesV13() {
       "- Build character 1, 2 and 3 on the matching CASTING SEED below. Keep each seed's gender and the listed order. Treat age, home ground and line of work as a starting point you may bend or turn sideways, not a form to fill in.\r\n" +
       "- Livelihoods should differ from each other and from the surface of the missions. Delivery riders, couriers and hired drivers are not a default for street-level characters."
   );
+  t = replaceExact(
+    t,
+    "do not split one action into a chain of near-identical checks.",
+    "do not split one action into a chain of near-identical checks.\r\n" +
+      "- Stealth and infiltration follow the same rule: one successful roll carries the declared approach through the same zone until something materially changes — a new zone, a new observer, noise, or a timeline beat that brings someone close. Waiting, watching or listening from cover already won needs no roll; time simply passes and the world moves. Knowing where guards and patrols are is a reason to make them matter when they arrive, not a reason to roll for every step."
+  );
   return t;
 }
 
